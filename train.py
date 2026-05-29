@@ -1,0 +1,65 @@
+import os
+import sys
+from unet import kits19Dataset, UNet
+import torch
+import torch.nn as nn
+import numpy as np
+from torch.utils.data import random_split, DataLoader
+import torch.distributed as dist
+import torch.multiprocessing as mp
+from torch.nn.parallel import DistributedDataParallel as DDP
+from torch.utils.data.distributed import DistributedSampler
+from sklearn.model_selection import train_test_split
+
+def train(device, model, dataloader, lossfn, optim, epochs_completed, epochs):
+    model.train()
+    losses = np.zeros(epochs)
+    numbatches = len(dataloader)
+    for epoch in range(epochs_completed+1, epochs):
+        totalloss = 0;
+        for (x,y) in dataloader:
+            x = x.to(device)
+            y = y.to(device)
+            pred = model(x)
+            loss = lossfn(pred, y)
+            loss.backward()
+            optim.step()
+            optim.zero_grad()
+            #print(f"Batch loss: {loss.item()}")
+            totalloss += loss.item()
+
+        avgloss = totalloss / numbatches
+        losses[epoch] = avgloss
+        print(f"Epoch {epoch}: average loss {avgloss:.5f}")
+        torch.save(model.state_dict(), f"UNET_e{epoch}.pth")
+    return losses
+
+def main():
+    device = torch.accelerator.current_accelerator().type if torch.accelerator.is_available() else "cpu"
+    batch_size = 16
+    lr=1e-3
+    epochs = 250
+    epochs_completed = 199
+
+    data = kits19Dataset("image", "seg")
+    lencap = 1000
+    train_size = int(len(data) * 0.8)
+    test_size = len(data) - train_size
+    torch.Generator().manual_seed(1234)
+    train_dataset, test_dataset = random_split(data, [train_size, test_size])
+    train_dataloader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True, drop_last=True)
+    test_dataloader = DataLoader(test_dataset, batch_size=batch_size, shuffle=True, drop_last=True)
+    model = UNet(512, 1).to(device)
+    if len(sys.argv) > 1:
+        model.load_state_dict(torch.load(sys.argv[1], weights_only=True))
+        #epochs_completed = int(sys.argv[1][-5])
+
+    #lossfn = nn.CrossEntropyLoss(weight=torch.tensor([1.0,200.0,200.0]).to(device))
+    lossfn = nn.CrossEntropyLoss(weight=torch.tensor([1.0,200.0,400.0]).to(device))
+    optim = torch.optim.SGD(model.parameters(), lr=lr)
+
+    train_losses = train("cuda", model, train_dataloader, lossfn, optim, epochs_completed, epochs)
+    np.savetxt("trainlosses.csv", train_losses, delimiter=",", fmt="%f")
+
+if __name__ == "__main__":
+    main()
