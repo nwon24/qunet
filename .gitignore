@@ -3,3 +3,4 @@ image
 seg
 dataset
 __pycache__
+*.pth
