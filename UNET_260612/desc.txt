@@ -1,0 +1,1 @@
+Classical UNET on 32x32 images, batch size 14, unweighted cross entropy loss
