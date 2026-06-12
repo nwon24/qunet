@@ -1,6 +1,8 @@
 import os
 import sys
-from qunet import kits19Dataset, UNet
+from qunet import kits19Dataset
+# from qunet import UNet
+from qunet_lite import UNet
 import torch
 import torch.nn as nn
 import numpy as np
@@ -16,17 +18,17 @@ def train(device, model, dataloader, lossfn, optim, epochs_completed, epochs):
     losses = np.zeros(epochs)
     numbatches = len(dataloader)
     for epoch in range(epochs_completed+1, epochs):
-        totalloss = 0;
+        totalloss = 0
         for (x,y) in dataloader:
             x = x.to(device)
             y = y.to(device)
-            print("here!")
+            # print("here!")
+            optim.zero_grad(set_to_none=True)
             pred = model(x)
             loss = lossfn(pred, y)
-            print(loss.item())
+            # print(loss.item())
             loss.backward()
             optim.step()
-            optim.zero_grad()
             #print(f"Batch loss: {loss.item()}")
             totalloss += loss.item()
 
@@ -38,19 +40,20 @@ def train(device, model, dataloader, lossfn, optim, epochs_completed, epochs):
 
 def main():
     device = torch.accelerator.current_accelerator().type if torch.accelerator.is_available() else "cpu"
-    batch_size = 16
+    batch_size = 14
     lr=1e-3
     epochs = 50
     epochs_completed = 0
 
-    data = kits19Dataset("image", "seg")
+    data = kits19Dataset("size_32/image", "size_32/seg")
     lencap = 1000
     train_size = int(len(data) * 0.8)
     test_size = len(data) - train_size
+    torch.Generator().manual_seed(1234)
     train_dataset, test_dataset = random_split(data, [train_size, test_size])
     train_dataloader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True, drop_last=True)
     test_dataloader = DataLoader(test_dataset, batch_size=batch_size, shuffle=True, drop_last=True)
-    model = UNet(512, 1).to(device)
+    model = UNet(32, 1).to(device)
     if len(sys.argv) > 1:
         model.load_state_dict(torch.load(sys.argv[1], weights_only=True))
         epochs_completed = int(sys.argv[1][-5])

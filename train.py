@@ -36,12 +36,13 @@ def train(device, model, dataloader, lossfn, optim, epochs_completed, epochs):
 
 def main():
     device = torch.accelerator.current_accelerator().type if torch.accelerator.is_available() else "cpu"
-    batch_size = 16
+    batch_size = 14
     lr=1e-3
-    epochs = 250
-    epochs_completed = 199
+    epochs = 50
+    epochs_completed = 0
 
-    data = kits19Dataset("image", "seg")
+#    data = kits19Dataset("image", "seg")
+    data = kits19Dataset("size_32/image", "size_32/seg")
     lencap = 1000
     train_size = int(len(data) * 0.8)
     test_size = len(data) - train_size
@@ -49,13 +50,14 @@ def main():
     train_dataset, test_dataset = random_split(data, [train_size, test_size])
     train_dataloader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True, drop_last=True)
     test_dataloader = DataLoader(test_dataset, batch_size=batch_size, shuffle=True, drop_last=True)
-    model = UNet(512, 1).to(device)
+    model = UNet(32, 1).to(device)
     if len(sys.argv) > 1:
         model.load_state_dict(torch.load(sys.argv[1], weights_only=True))
         #epochs_completed = int(sys.argv[1][-5])
 
     #lossfn = nn.CrossEntropyLoss(weight=torch.tensor([1.0,200.0,200.0]).to(device))
-    lossfn = nn.CrossEntropyLoss(weight=torch.tensor([1.0,200.0,400.0]).to(device))
+    #lossfn = nn.CrossEntropyLoss(weight=torch.tensor([1.0,200.0,400.0]).to(device))
+    lossfn = nn.CrossEntropyLoss()
     optim = torch.optim.SGD(model.parameters(), lr=lr)
 
     train_losses = train("cuda", model, train_dataloader, lossfn, optim, epochs_completed, epochs)
