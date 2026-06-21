@@ -16,106 +16,125 @@ class QConv2d(nn.Module):
         self.in_channels = in_channels
         self.out_channels = out_channels
         
-        # @partial(qml.batch_input, argnum=0)
-        @qml.qnode(self.dev, interface='torch')
+        #@partial(qml.batch_input, argnum=0)
+        #@qml.qjit
+        #@partial(qml.batch_input, argnum=0)
+        #@partial(qml.batch_input, argnum=0)
+        @partial(qml.batch_params)
+        #@qml.batch_params
+        #@qml.batch_partial
+        @qml.qnode(self.dev, diff_method="adjoint", interface='torch')
         def qc(inputs, weights):
+        #def qc(inputs, weights):
             # print(f"Inputs shape in qc {inputs.shape}")
-            weights = weights.reshape(-1)
+            #weights = weights.reshape(-1)
+            #print(inputs.shape)
+            #print(weights.shape)
 
             qml.AngleEmbedding(inputs, wires=range(self.wires))
+            
+            # for i in range(self.wires):
+            #     qml.CNOT(wires=[i, (i + 1) % self.wires])
 
-            for i in range(self.wires):
-                qml.CNOT(wires=[i, (i + 1) % self.wires])
-
-            for i in range(self.wires):
-                qml.RY(weights[i], wires=i)
-
+            # for i in range(self.wires):
+            #     qml.RY(weights[i], wires=i)
+                #qml.RY(1, wires=i)
+            qml.BasicEntanglerLayers(weights, wires=range(self.wires))
             return qml.expval(qml.Z(0))
 
         self.qc = qc
+        #self.qc = qml.simplify(self.qc)
+        
 
-
-#     def forward(self, X, padding_value=0):
-#         print(f"X.shape in forward {X.shape}")
-#         N, C, H,  W  = X.shape
-#         F, C, HH, WW = self.filter_weights.shape
-#         X_pad = nn.functional.pad(X, (self.pad, self.pad, self.pad, self.pad), mode='constant', value=padding_value)
-#         _, _, H_pad, W_pad = X_pad.shape
-#         H_out = 1 + (H + 2*self.pad - HH) // self.stride
-#         W_out = 1 + (W + 2*self.pad - WW) // self.stride
-#         out = torch.zeros((N,F,H_out,W_out))
-#         print(f"Number of filters: {F}")
-#         for f in range(F):
-#             print(f"processing filter {f}")
-#             for h in range(H_out):
-#                 # print(f"\t\tprocessing height {h}")
-#                 for w in range(W_out):
-#                     # if w % 64 == 0:
-#                         # print(f"\t\t\tprocessing width {w}")
-#                     h_, w_ = h*self.stride, w*self.stride
-#                     patches = X_pad[:, :, h_:h_+HH, w_:w_+WW].squeeze()
-#                     print(f"Patches shape in forward {patches.shape}")
-#                     output = self.qc(patches, self.filter_weights[f].unsqueeze(0))
-# #                        print(output.shape)
-#                     out[:, f, h, w] = output
-
-#         return out
 
     def forward(self, X, padding_value=0):
-        # print(f"X.shape in forward {X.shape}")
+        #print(f"X.shape in forward {X.shape}")
+        #print(X.requires_grad)
         N, C, H,  W  = X.shape
         F, C, HH, WW = self.filter_weights.shape
         X_pad = nn.functional.pad(X, (self.pad, self.pad, self.pad, self.pad), mode='constant', value=padding_value)
         _, _, H_pad, W_pad = X_pad.shape
-        H_out = 1 + (H + 2*self.pad - self.kernel_size) // self.stride
-        W_out = 1 + (W + 2*self.pad - self.kernel_size) // self.stride
-        L = H_out * W_out
-        # out = torch.zeros((N,F,H_out,W_out))
+        H_out = 1 + (H + 2*self.pad - HH) // self.stride
+        W_out = 1 + (W + 2*self.pad - WW) // self.stride
+        #print(self.filter_weights.shape)
+        #print(m.shape)
+        #print(H_out, W_out)
+        unfolded = nn.functional.unfold(X, kernel_size=self.kernel_size,padding=self.pad,stride=self.stride)
+        squashed_weights=self.filter_weights.view(F,-1)
+        #squashed_weights=self.filter_weights.view(F,C, self.kernel_size*self.kernel_size)
+        #print(unfolded.shape)
+        #print(squashed_weights.shape)
+        #unfolded.requires_grad = False
+        #print(unfolded.requires_grad)
+        # m = torch.cat(
+        #     [self.qc(unfolded[:,:,i].view(N, C, self.kernel_size * self.kernel_size), self.filter_weights.view(-1, self.kernel_size * self.kernel_size).unsqueeze(0).repeat(N, 1, 1)) for i in range(unfolded.shape[-1])],
+        #     dim=-1)
+        m = torch.cat(
+            [self.qc(unfolded[:,:,i].view(N, C, self.kernel_size * self.kernel_size),
+                     torch.normal(torch.zeros(N, self.wires),torch.ones(N, self.wires))) for i in range(unfolded.shape[-1])],
+            dim=-1)
+        #print(m)
+        #print(m.shape)
+        #self.qc(unfolded[:,:,0].view(N, C, self.kernel_size * self.kernel_size), squashed_weights)
+        #return (squashed_weights @ unfolded).view(N, F, H_out, W_out)
+        #m.requires_grad = True
+        return m.view(N, F, H_out, W_out)
 
-        patches = Func.unfold(
-            X,
-            kernel_size=self.kernel_size,
-            padding=self.pad,
-            stride=self.stride
-        )
+    # def forward(self, X, padding_value=0):
+    #     # print(f"X.shape in forward {X.shape}")
+    #     N, C, H,  W  = X.shape
+    #     F, C, HH, WW = self.filter_weights.shape
+    #     X_pad = nn.functional.pad(X, (self.pad, self.pad, self.pad, self.pad), mode='constant', value=padding_value)
+    #     _, _, H_pad, W_pad = X_pad.shape
+    #     H_out = 1 + (H + 2*self.pad - self.kernel_size) // self.stride
+    #     W_out = 1 + (W + 2*self.pad - self.kernel_size) // self.stride
+    #     L = H_out * W_out
+    #     # out = torch.zeros((N,F,H_out,W_out))
 
-        # Reshape to separate channels and patch pixels.
-        # [N, C*K*K, L] -> [N, C, K*K, L]
-        patches = patches.view(N, C, self.kernel_size ** 2, L)
+    #     patches = Func.unfold(
+    #         X,
+    #         kernel_size=self.kernel_size,
+    #         padding=self.pad,
+    #         stride=self.stride
+    #     )
 
-        # Move spatial patch index beside batch.
-        # [N, C, K*K, L] -> [N, L, C, K*K]
-        patches = patches.permute(0, 3, 1, 2)
+    #     # Reshape to separate channels and patch pixels.
+    #     # [N, C*K*K, L] -> [N, C, K*K, L]
+    #     patches = patches.view(N, C, self.kernel_size ** 2, L)
 
-        outputs = []
+    #     # Move spatial patch index beside batch.
+    #     # [N, C, K*K, L] -> [N, L, C, K*K]
+    #     patches = patches.permute(0, 3, 1, 2)
 
-        for f in range(self.out_channels):
-            # Accumulate over input channels.
-            acc = X.new_zeros(N, L)
+    #     outputs = []
 
-            for c in range(C):
-                # [N, L, K*K]
-                patch_fc = patches[:, :, c, :]
+    #     for f in range(self.out_channels):
+    #         # Accumulate over input channels.
+    #         acc = X.new_zeros(N, L)
 
-                # [N, L, K*K] -> [N*L, K*K]
-                patch_fc = patch_fc.reshape(N * L, self.kernel_size ** 2)
+    #         for c in range(C):
+    #             # [N, L, K*K]
+    #             patch_fc = patches[:, :, c, :]
 
-                # Quantum output: [N*L]
-                qout = self.qc(patch_fc, self.filter_weights[f, c])
+    #             # [N, L, K*K] -> [N*L, K*K]
+    #             patch_fc = patch_fc.reshape(N * L, self.kernel_size ** 2)
 
-                # [N*L] -> [N, L]
-                qout = qout.reshape(N, L)
+    #             # Quantum output: [N*L]
+    #             qout = self.qc(patch_fc, self.filter_weights[f, c])
 
-                acc = acc + qout
+    #             # [N*L] -> [N, L]
+    #             qout = qout.reshape(N, L)
 
-            acc = acc + self.filter_biases[f]
-            outputs.append(acc)
+    #             acc = acc + qout
 
-        # [F_out, N, L] -> [N, F_out, L]
-        out = torch.stack(outputs, dim=1)
+    #         acc = acc + self.filter_biases[f]
+    #         outputs.append(acc)
 
-        # [N, F_out, L] -> [N, F_out, H_out, W_out]
-        out = out.view(N, self.out_channels, H_out, W_out)
+    #     # [F_out, N, L] -> [N, F_out, L]
+    #     out = torch.stack(outputs, dim=1)
 
-        return out
+    #     # [N, F_out, L] -> [N, F_out, H_out, W_out]
+    #     out = out.view(N, self.out_channels, H_out, W_out)
+
+    #     return out
 
