@@ -48,7 +48,12 @@ def main():
     test_size = len(data) - train_size
     torch.Generator().manual_seed(1234)
     train_dataset, test_dataset = random_split(data, [train_size, test_size])
-    train_dataloader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True, drop_last=True)
+    torch.seed()
+    subset_size = 4*batch_size
+    indices = torch.randperm(len(train_dataset))[:subset_size]
+    sampler = SubsetRandomSampler(indices)
+    #train_dataloader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True, drop_last=True)
+    train_dataloader = DataLoader(train_dataset, batch_size=batch_size, sampler=sampler)
     test_dataloader = DataLoader(test_dataset, batch_size=batch_size, shuffle=True, drop_last=True)
     model = UNet(32, 1).to(device)
     if len(sys.argv) > 1:

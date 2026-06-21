@@ -1,12 +1,12 @@
 import os
 import sys
 from qunet import kits19Dataset
-# from qunet import UNet
-from qunet_lite import UNet
+from qunet import UNet
+#from qunet_lite import UNet
 import torch
 import torch.nn as nn
 import numpy as np
-from torch.utils.data import random_split, DataLoader
+from torch.utils.data import random_split, DataLoader, SubsetRandomSampler
 import torch.distributed as dist
 import torch.multiprocessing as mp
 from torch.nn.parallel import DistributedDataParallel as DDP
@@ -17,12 +17,13 @@ def train(device, model, dataloader, lossfn, optim, epochs_completed, epochs):
     model.train()
     losses = np.zeros(epochs)
     numbatches = len(dataloader)
+    print(f"Number of batches: {numbatches}")
     for epoch in range(epochs_completed+1, epochs):
         totalloss = 0
         for (x,y) in dataloader:
             x = x.to(device)
             y = y.to(device)
-            # print("here!")
+            print("here!")
             optim.zero_grad(set_to_none=True)
             pred = model(x)
             loss = lossfn(pred, y)
@@ -45,13 +46,19 @@ def main():
     epochs = 50
     epochs_completed = 0
 
+
     data = kits19Dataset("size_32/image", "size_32/seg")
     lencap = 1000
     train_size = int(len(data) * 0.8)
     test_size = len(data) - train_size
     torch.Generator().manual_seed(1234)
     train_dataset, test_dataset = random_split(data, [train_size, test_size])
-    train_dataloader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True, drop_last=True)
+    torch.seed()
+    subset_size = 4*batch_size
+    indices = torch.randperm(len(train_dataset))[:subset_size]
+    sampler = SubsetRandomSampler(indices)
+    #train_dataloader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True, drop_last=True)
+    train_dataloader = DataLoader(train_dataset, batch_size=batch_size, sampler=sampler)
     test_dataloader = DataLoader(test_dataset, batch_size=batch_size, shuffle=True, drop_last=True)
     model = UNet(32, 1).to(device)
     if len(sys.argv) > 1:
