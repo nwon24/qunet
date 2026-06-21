@@ -1,0 +1,26 @@
+QUNET with single quantum convolution between encoder and decoder, 4 random batches of 14 per epoch
+Epoch 1: average loss 0.52689
+Epoch 2: average loss 0.46552
+Epoch 3: average loss 0.43893
+Epoch 4: average loss 0.42196
+Epoch 5: average loss 0.40963
+Epoch 6: average loss 0.40006
+Epoch 7: average loss 0.39232
+Epoch 8: average loss 0.38588
+Epoch 9: average loss 0.38044
+Epoch 10: average loss 0.37560
+Epoch 11: average loss 0.37139
+Epoch 12: average loss 0.36769
+Epoch 13: average loss 0.36431
+Epoch 14: average loss 0.36129
+Epoch 15: average loss 0.35855
+Epoch 16: average loss 0.35597
+Epoch 17: average loss 0.35369
+Epoch 18: average loss 0.35149
+Epoch 19: average loss 0.34946
+Epoch 20: average loss 0.34758
+Epoch 21: average loss 0.34575
+Epoch 22: average loss 0.34410
+Epoch 23: average loss 0.34243
+Epoch 24: average loss 0.34089
+Epoch 25: average loss 0.33941
