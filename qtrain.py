@@ -17,13 +17,13 @@ def train(device, model, dataloader, lossfn, optim, epochs_completed, epochs):
     model.train()
     losses = np.zeros(epochs)
     numbatches = len(dataloader)
-    print(f"Number of batches: {numbatches}")
+    #print(f"Number of batches: {numbatches}")
     for epoch in range(epochs_completed+1, epochs):
         totalloss = 0
         for (x,y) in dataloader:
             x = x.to(device)
             y = y.to(device)
-            print("here!")
+            #print("here!")
             optim.zero_grad(set_to_none=True)
             pred = model(x)
             loss = lossfn(pred, y)
