@@ -3,6 +3,7 @@ import torch
 import torch.nn as nn
 import pennylane as qml
 import torch.nn.functional as Func
+from torch.distributions import Normal
 
 class QConv2d(nn.Module):
     def __init__(self, in_channels, out_channels, kernel_size, stride=1, padding=0):
@@ -13,6 +14,8 @@ class QConv2d(nn.Module):
         self.pad, self.stride = padding, stride
         self.filter_weights = nn.Parameter(torch.rand(out_channels, in_channels, kernel_size, kernel_size))
         self.filter_biases = nn.Parameter(torch.rand(out_channels, ))
+        self.mu = nn.Parameter(torch.tensor([0.0]))
+        self.sigma = nn.Parameter(torch.tensor([0.0]))
         self.in_channels = in_channels
         self.out_channels = out_channels
         
@@ -69,10 +72,18 @@ class QConv2d(nn.Module):
         # m = torch.cat(
         #     [self.qc(unfolded[:,:,i].view(N, C, self.kernel_size * self.kernel_size), self.filter_weights.view(-1, self.kernel_size * self.kernel_size).unsqueeze(0).repeat(N, 1, 1)) for i in range(unfolded.shape[-1])],
         #     dim=-1)
+        print(self.mu)
+        print(torch.exp(self.sigma))
+        #print(self.filter_weights.grad)
+        #print(self.mu.requires_grad)
+        z = torch.normal(torch.zeros(N,self.wires),torch.ones(N,self.wires)).to(self.mu.device.type)
+        weights=((z+self.mu)*torch.exp(self.sigma)).unsqueeze(1)
+        #print(weights.requires_grad)
         m = torch.cat(
-            [self.qc(unfolded[:,:,i].view(N, C, self.kernel_size * self.kernel_size),
-                     torch.normal(torch.zeros(N, self.wires),torch.ones(N, self.wires))) for i in range(unfolded.shape[-1])],
-            dim=-1)
+             [self.qc(unfolded[:,:,i].view(N, C, self.kernel_size * self.kernel_size),
+                      weights) for i in range(unfolded.shape[-1])],
+             dim=-1)
+
         #print(m)
         #print(m.shape)
         #self.qc(unfolded[:,:,0].view(N, C, self.kernel_size * self.kernel_size), squashed_weights)
