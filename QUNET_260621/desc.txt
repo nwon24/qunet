@@ -1,0 +1,1 @@
+QUNET with single quantum convolution between encoder and decoder, 4 random batches of 14 per epoch
