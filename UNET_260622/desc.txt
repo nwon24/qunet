@@ -1,0 +1,1 @@
+Classical U-Net, 32x32 imageswith each epoch having 4 random batches of 14
