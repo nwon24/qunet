@@ -1,0 +1,1 @@
+Classical U-Net, 32x32 images, 8 random batches of 14 samples each per epoch
