@@ -1,0 +1,1 @@
+64x64 images, batch size 14, 4 batches per epoch, weights from paramterized Gaussian
