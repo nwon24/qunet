@@ -1,0 +1,1 @@
+64x64, batch size 14, 4 batchex per epoch
