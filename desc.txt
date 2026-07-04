@@ -4,12 +4,16 @@ UNET_260624
 - 32x32, batch size 14, 8 batches per epoch
 UNET_260626
 - 64x64, batch size 14, 4 batches per epoch
+UNET_260705
+- 64x64, batch size 14, 8 batches per epoch
 
 QUNET_260621
 - 32x32, batch size 14, 4 batches per epoch, weights drawn from standard normal
 QUNET_260622
-- 32x32, batch size 14, 4 batches per epoch, weights drawn from paramterized normal
+- 32x32, batch size 14, 4 batches per epoch, weights drawn from parameterized normal
 QUNET 260623
-- 32x32, batch size 14, 8 batches per epoch, weighs drawn from paramterized normal
+- 32x32, batch size 14, 8 batches per epoch, weights drawn from parameterized normal
 QUNET_260624
 - 64x64, batch size 14, 4 batchex per epoch, weights drawn from parameterized normal
+QUNET_260626
+- 64x64, batch size 14, 8 batches per epoch, weights drawn from parameterized normal
