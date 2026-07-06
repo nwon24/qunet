@@ -1,6 +1,6 @@
 import os
 import sys
-from unet import kits19Dataset, UNet
+from unet import kits19Dataset, UNet                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                
 import torch
 import torch.nn as nn
 import numpy as np
@@ -16,7 +16,7 @@ def train(device, model, dataloader, lossfn, optim, epochs_completed, epochs):
     losses = np.zeros(epochs)
     numbatches = len(dataloader)
     for epoch in range(epochs_completed+1, epochs):
-        totalloss = 0;
+        totalloss = 0
         for (x,y) in dataloader:
             x = x.to(device)
             y = y.to(device)
@@ -42,20 +42,20 @@ def main():
     epochs_completed = 0
 
 #    data = kits19Dataset("image", "seg")
-    data = kits19Dataset("size_32/image", "size_32/seg")
+    data = kits19Dataset("size_64/image", "size_64/seg")
     lencap = 1000
     train_size = int(len(data) * 0.8)
     test_size = len(data) - train_size
     torch.Generator().manual_seed(1234)
     train_dataset, test_dataset = random_split(data, [train_size, test_size])
     torch.seed()
-    subset_size = 4*batch_size
+    subset_size = 8*batch_size
     indices = torch.randperm(len(train_dataset))[:subset_size]
     sampler = SubsetRandomSampler(indices)
     #train_dataloader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True, drop_last=True)
     train_dataloader = DataLoader(train_dataset, batch_size=batch_size, sampler=sampler)
     test_dataloader = DataLoader(test_dataset, batch_size=batch_size, shuffle=True, drop_last=True)
-    model = UNet(32, 1).to(device)
+    model = UNet(64, 1).to(device)
     if len(sys.argv) > 1:
         model.load_state_dict(torch.load(sys.argv[1], weights_only=True))
         #epochs_completed = int(sys.argv[1][-5])
