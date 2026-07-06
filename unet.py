@@ -13,8 +13,6 @@ class kits19Dataset(Dataset):
         self.segdir = segdir
         self.imglist = [f for f in Path(imgdir).iterdir() if f.is_file()]
         self.seglist = [f for f in Path(segdir).iterdir() if f.is_file()]
-        #self.img = [decode_image(file).to(torch.float16) for file in self.imglist]
-        #self.seg = [decode_image(file).to(torch.float16) for file in self.seglist]
 
     def __len__(self):
         return len(self.imglist)
@@ -23,12 +21,7 @@ class kits19Dataset(Dataset):
         img =decode_image(self.imglist[idx]).to(torch.float32)
         seg = decode_image(self.seglist[idx], mode="GRAY").to(torch.float32)
         seg = torch.squeeze(((seg / 255) * 2).to(torch.int64))
-        #print(seg)
-        #print(torch.unique(seg))
-        #seg = torch.squeeze(one_hot(seg, 3).to(torch.float32))
-        #print(seg.shape)
         return img, seg
-        #return self.img[idx], self.seg[idx]
 
 class Lambda(nn.Module):
     def __init__(self, f):
