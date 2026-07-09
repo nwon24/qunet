@@ -16,6 +16,7 @@ if len(sys.argv) < 4:
     print("Not enough arguments")
     exit()
 
+# Usage: loss_graph.py <Classical loss txt file> <Quantum loss txt file> <Output directory (results/<models to be compared>)
 LOSS_TXT = Path(sys.argv[1])
 QLOSS_TXT = Path(sys.argv[2])
 
@@ -64,6 +65,9 @@ def read_epoch_loss_txt(path: Path):
 def main():
     unet_epochs, unet_losses = read_epoch_loss_txt(LOSS_TXT)
     q_epochs, q_losses = read_epoch_loss_txt(QLOSS_TXT)
+
+    # unet_epochs, unet_losses = unet_epochs[0:25], unet_losses[0:25]
+    # q_epochs, q_losses = q_epochs[0:25], q_losses[0:25]
 
     plt.figure(figsize=(8, 5))
 
